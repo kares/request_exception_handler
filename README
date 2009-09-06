@@ -1,11 +1,11 @@
 RequestExceptionHandler
 =======================
 
-Rails is not capable of calling Your exception handlers when a error occurs
+Rails is not capable of calling Your exception handlers when an error occurs
 during the parsing of request parameters (e.g. in case of invalid XML body).
 
 This will hopefully change in Rails 3, but until then I've created this plugin
-that monkey-patches rails parameter parsing to allow more flexibility when
+that monkey-patches request parameter parsing to allow more flexibility when
 handling parsing errors. The plugin has been tested on Rails 2.3.3 and 2.2.2
 but should work with any Rails 2.x version.
 
@@ -22,7 +22,6 @@ Example
 
 The plugin hooks into request parameter parsing and allows a request to be
 constructed even if the params can not be parsed from the submited content.
-
 A before filter is installed that checkes for a request exception and re-raises
 it thus it seems to Rails that the exception comes from the application code and
 is processed as all other "business" exceptions, You might skip this filter and
@@ -48,7 +47,7 @@ class MyController < ApplicationController
 end
 
 Another option of how to modify the returned 500 status is to use exception
-handlers as You're probably using them for Your own domain exceptions :
+handlers the same way You're probably using them for Your own exceptions :
 
 class ApplicationController < ActionController::Base
 
