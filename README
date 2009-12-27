@@ -6,7 +6,7 @@ during the parsing of request parameters (e.g. in case of invalid XML body).
 
 This will hopefully change in Rails 3, but until then I've created this plugin
 that monkey-patches request parameter parsing to allow more flexibility when
-handling parsing errors. The plugin has been tested on Rails 2.3.3 and 2.2.2
+handling parsing errors. The plugin has been tested on Rails 2.3.x and 2.2.x
 but should work with any Rails 2.x version.
 
 
@@ -47,7 +47,7 @@ class MyController < ApplicationController
 end
 
 Another option of how to modify the returned 500 status is to use exception
-handlers the same way You're probably using them for Your own exceptions :
+handlers the same way You're (hopefully) using them for Your own exceptions :
 
 class ApplicationController < ActionController::Base
 
@@ -57,6 +57,6 @@ class ApplicationController < ActionController::Base
 
 end
 
+http://blog.kares.org/search/label/request_exception_handler
 
-Copyright (c) 2009 Karol Bucek (http://blog.kares.org),
-released under the MIT license
+Copyright (c) 2009 Karol Bucek, released under the MIT license

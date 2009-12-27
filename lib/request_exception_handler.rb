@@ -31,7 +31,7 @@ module RequestExceptionHandler
   end
 
   def request_exception
-    return @_request_exception if @_request_exception
+    return @_request_exception if defined? @_request_exception
     @_request_exception = Thread.current[:request_exception]
     RequestExceptionHandler.reset_request_exception
     @_request_exception
