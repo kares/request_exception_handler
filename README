@@ -6,7 +6,7 @@ during the parsing of request parameters (e.g. in case of invalid XML body).
 
 This will hopefully change in Rails 3, but until then I've created this plugin
 that monkey-patches request parameter parsing to allow more flexibility when
-handling parsing errors. The plugin has been tested on Rails 2.3.x and 2.2.x
+handling parsing errors. The plugin has been tested on 2.3.x, 2.2.3 and 2.1.x
 but should work with any Rails 2.x version.
 
 

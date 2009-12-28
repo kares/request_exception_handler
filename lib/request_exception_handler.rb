@@ -6,12 +6,14 @@ module RequestExceptionHandler
     logger = defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER : Logger.new($stderr)
     logger.info "#{exception.class.name} occurred while parsing request parameters." +
                 "\nContents:\n\n#{request.raw_post}"
+              
     content_type = if request.respond_to?(:content_type_with_parameters)
       request.send :content_type_with_parameters # AbstractRequest
     else
       request.content_type # rack request
     end
-    { "body" => request.raw_post, "content_type" => content_type,
+    { "body" => request.respond_to?(:body) ? request.body : request.raw_post,
+      "content_type" => content_type,
       "content_length" => request.content_length }
   end
   
