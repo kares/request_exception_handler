@@ -36,13 +36,13 @@ install Your own to handle such cases :
 
       private
 
-      def return_409_on_json_errors
-	if re = request_exception && re.is_a?(ActiveSupport::JSON::ParseError)
-          head 409
-	else
-          head 500
-	end
-      end
+        def return_409_on_json_errors
+          if re = request_exception && re.is_a?(ActiveSupport::JSON::ParseError)
+            head 409
+          else
+            head 500
+          end
+        end
 
     end
 
@@ -52,7 +52,7 @@ handlers the same way You're (hopefully) using them for Your own exceptions :
     class ApplicationController < ActionController::Base
 
       rescue_from 'REXML::ParseException' do |exception|
-	render :text => exception.to_s, :status => 422
+        render :text => exception.to_s, :status => 422
       end
 
     end
