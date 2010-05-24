@@ -15,7 +15,7 @@ Install
 
 Installable as a plain-old rails plugin:
 
-./script/plugin install git://github.com/kares/request_exception_handler.git
+    ./script/plugin install git://github.com/kares/request_exception_handler.git
 
 Example
 =======
@@ -27,36 +27,34 @@ it thus it seems to Rails that the exception comes from the application code and
 is processed as all other "business" exceptions, You might skip this filter and
 install Your own to handle such cases :
 
-class MyController < ApplicationController
+    class MyController < ApplicationController
 
-  skip_before_filter :check_request_exception # filter the plugin installed
+      skip_before_filter :check_request_exception # filter the plugin installed
 
-  # custom before filter use request_exception to detect occured errors
-  before_filter :return_409_on_json_errors
+      # custom before filter use request_exception to detect occured errors
+      before_filter :return_409_on_json_errors
 
-  private
+      private
 
-  def return_409_on_json_errors
-    if re = request_exception && re.is_a?(ActiveSupport::JSON::ParseError)
-      head 409
-    else
-      head 500
+      def return_409_on_json_errors
+	if re = request_exception && re.is_a?(ActiveSupport::JSON::ParseError)
+          head 409
+	else
+          head 500
+	end
+      end
+
     end
-  end
-
-end
 
 Another option of how to modify the returned 500 status is to use exception
 handlers the same way You're (hopefully) using them for Your own exceptions :
 
-class ApplicationController < ActionController::Base
+    class ApplicationController < ActionController::Base
 
-  rescue_from 'REXML::ParseException' do |exception|
-    render :text => exception.to_s, :status => 422
-  end
+      rescue_from 'REXML::ParseException' do |exception|
+	render :text => exception.to_s, :status => 422
+      end
 
-end
+    end
 
 http://blog.kares.org/search/label/request_exception_handler
-
-Copyright (c) 2009 Karol Bucek, released under the MIT license
