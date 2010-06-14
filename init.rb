@@ -1,4 +1,5 @@
 require 'request_exception_handler'
+
 ActionController::Base.send :include, RequestExceptionHandler
 
 # NOTE: Rails 2.x monkey patching follows :

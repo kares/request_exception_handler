@@ -3,8 +3,17 @@ require 'test/unit'
 
 # enable testing with different version of rails via argv :
 # ruby request_exception_handler_test.rb RAILS_VERSION=2.2.2
-if ARGV.find { |opt| /RAILS_VERSION=([\d\.]+)/ =~ opt }
-  RAILS_VERSION = $~[1]
+
+version =
+  if ARGV.find { |opt| /RAILS_VERSION=([\d\.]+)/ =~ opt }
+    $~[1]
+  else
+    # rake test RAILS_VERSION=2.3.5
+    ENV['RAILS_VERSION']
+  end
+
+if version
+  RAILS_VERSION = version
   gem 'activesupport', "= #{RAILS_VERSION}"
   gem 'activerecord', "= #{RAILS_VERSION}"
   gem 'actionpack', "= #{RAILS_VERSION}"

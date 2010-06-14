@@ -8,8 +8,7 @@ task :default => :test
 desc 'Test the request_exception_handler plugin.'
 Rake::TestTask.new(:test) do |t|
   t.libs << 'lib'
-  t.libs << 'test'
-  t.pattern = 'test/**/*_test.rb'
+  t.pattern = 'test/*_test.rb'
   t.verbose = true
 end
 

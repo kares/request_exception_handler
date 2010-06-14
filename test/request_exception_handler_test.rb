@@ -1,4 +1,4 @@
-require 'test_helper'
+require File.join(File.dirname(__FILE__), 'test_helper')
 
 #
 # NOTE: due to the test_helper.rb argument parsing this test might
@@ -30,6 +30,10 @@ class TestController < ActionController::Base
     head 501 if request_exception
   end
 
+end
+
+ActionController::Routing::Routes.draw do |map|
+    map.connect '/:action', :controller => "test"
 end
 
 class RequestExceptionHandlerTest < ActionController::IntegrationTest
@@ -68,126 +72,94 @@ class RequestExceptionHandlerTest < ActionController::IntegrationTest
 #  end
 
   def test_parse_valid_json
-    with_test_routing do
-      post "/parse", "{\"cicinbrus\": {\"name\": \"Ferko\"}}", 'CONTENT_TYPE' => 'application/json'
-      assert_response 200
-    end
+    post "/parse", "{\"cicinbrus\": {\"name\": \"Ferko\"}}", 'CONTENT_TYPE' => 'application/json'
+    assert_response 200
   end
 
   def test_parse_invalid_json_returns_500_by_default
-    with_test_routing do
-      post "/parse", "{\"cicinbrus\": {\"name\": \"Ferko\"}", 'CONTENT_TYPE' => 'application/json'
-      assert_response 500
-    end
+    post "/parse", "{\"cicinbrus\": {\"name\": \"Ferko\"}", 'CONTENT_TYPE' => 'application/json'
+    assert_response 500
   end
 
   ###
 
   def test_parse_valid_xml
-    with_test_routing do
-      post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
-      assert_response 200
-    end
+    post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
+    assert_response 200
   end
   
   def test_parse_invalid_xml_returns_500_by_default
-    with_test_routing do
-      post "/parse", "<cicinbrus> <name>Ferko<name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
-      assert_response 500
-    end
+    post "/parse", "<cicinbrus> <name>Ferko<name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
+    assert_response 500
   end
 
   ###
 
   def test_controller_responds_to_request_exception_and_returns_nil_on_valid_request
-    with_test_routing do
-      post "/parse"
-      assert controller.respond_to? :request_exception
-      assert_nil controller.request_exception
-    end
+    post "/parse"
+    assert controller.respond_to? :request_exception
+    assert_nil controller.request_exception
   end
 
   def test_controller_returns_nil_on_request_exception_with_check_request_exception_skipped
-    with_test_routing do
-      post "/parse_with_check_request_exception_skipped"
-      assert_nil controller.request_exception
-    end
+    post "/parse_with_check_request_exception_skipped"
+    assert_nil controller.request_exception
   end
 
   def test_request_exception_returns_parse_exception_on_invalid_xml_request
-    with_test_routing do
-      post "/parse", "<cicinbrus> <name>Ferko</namee> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
-      assert_not_nil controller.request_exception
-      assert_xml_parse_exception controller.request_exception
-    end
+    post "/parse", "<cicinbrus> <name>Ferko</namee> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
+    assert_not_nil controller.request_exception
+    assert_xml_parse_exception controller.request_exception
   end
 
   def test_request_exception_returns_parse_exception_on_invalid_json_request
-    with_test_routing do
-      post "/parse", "{\"cicinbrus\": {\"name: \"Ferko\"}}", 'CONTENT_TYPE' => 'application/json'
-      assert_not_nil controller.request_exception
-      assert_json_parse_exception controller.request_exception
-    end
+    post "/parse", "{\"cicinbrus\": {\"name: \"Ferko\"}}", 'CONTENT_TYPE' => 'application/json'
+    assert_not_nil controller.request_exception
+    assert_json_parse_exception controller.request_exception
   end
 
   def test_request_exception_gets_cleared_for_another_valid_request
-    with_test_routing do
-      post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus ", 'CONTENT_TYPE' => 'application/xml'
-      post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
+    post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus ", 'CONTENT_TYPE' => 'application/xml'
+    post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
 
-      #session = self.instance_variable_get(:@integration_session)
-      #request = session.instance_variable_get(:@request)
-      #routes = ActionController::Routing::Routes
-      #path = request.path
-      #puts 'path = ' + path.inspect
-      #reg_env = routes.extract_request_environment(request)
-      #puts 'env = ' + reg_env.inspect
-      #params = routes.recognize_path(request.path, req_env)
-      #routes.routes.each do |route|
-      #  result = route.recognize('/test/parse/10', reg_env) #and return result
-      #  puts "#{route} = #{result.inspect}"
-      #end
-      #request.path_parameters = params.with_indifferent_access
-      #"#{params[:controller].camelize}Controller".constantize
+    #session = self.instance_variable_get(:@integration_session)
+    #request = session.instance_variable_get(:@request)
+    #routes = ActionController::Routing::Routes
+    #path = request.path
+    #puts 'path = ' + path.inspect
+    #reg_env = routes.extract_request_environment(request)
+    #puts 'env = ' + reg_env.inspect
+    #params = routes.recognize_path(request.path, req_env)
+    #routes.routes.each do |route|
+    #  result = route.recognize('/test/parse/10', reg_env) #and return result
+    #  puts "#{route} = #{result.inspect}"
+    #end
+    #request.path_parameters = params.with_indifferent_access
+    #"#{params[:controller].camelize}Controller".constantize
 
-      assert_nil controller.request_exception
-    end
+    assert_nil controller.request_exception
   end
 
   def test_request_exception_gets_cleared_for_another_valid_request_with_check_request_exception_skipped
-    with_test_routing do
-      post "/parse_with_check_request_exception_skipped",
-           "<cicinbrus> <name>Ferko</name> </cicinbrus ", 'CONTENT_TYPE' => 'application/xml'
-      post "/parse_with_check_request_exception_skipped",
-           "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
-      assert_nil controller.request_exception
-    end
+    post "/parse_with_check_request_exception_skipped",
+         "<cicinbrus> <name>Ferko</name> </cicinbrus ", 'CONTENT_TYPE' => 'application/xml'
+    post "/parse_with_check_request_exception_skipped",
+         "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
+    assert_nil controller.request_exception
   end
 
   def test_parse_with_check_request_exception_skipped_does_not_reraise_parse_exception
-    with_test_routing do
-      post "/parse_with_check_request_exception_skipped",
-           "<cicinbrus> <name>Ferko</name> </cicinbrus ", 'CONTENT_TYPE' => 'application/xml'
+    post "/parse_with_check_request_exception_skipped",
+         "<cicinbrus> <name>Ferko</name> </cicinbrus ", 'CONTENT_TYPE' => 'application/xml'
 
-      #session = self.instance_variable_get(:@integration_session)
-      #puts 'status: ' + session.instance_variable_get(:@status).inspect
-      #puts 'headers: ' + session.instance_variable_get(:@headers).inspect
-      #request = session.instance_variable_get(:@request)
-      #puts 'request.path = ' + request.path
-      #puts 'request.method = ' + request.method.inspect
-      #puts 'controller = ' + ActionController::Routing::Routes.recognize(request).inspect
-
-      assert_not_nil controller.request_exception
-      assert_response 200
-    end
+    assert_not_nil controller.request_exception
+    assert_response 200
   end
 
   def test_parse_with_check_request_exception_replaced_does_return_501_on_parse_exception
-    with_test_routing do
-      post "/parse_with_check_request_exception_replaced",
-           "<cicinbrus> <name>Ferko</name> <cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
-      assert_response 501
-    end
+    post "/parse_with_check_request_exception_replaced",
+         "<cicinbrus> <name>Ferko</name> <cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
+    assert_response 501
   end
 
   def test_on_parse_error_custom_rescue_handler_gets_called
@@ -197,10 +169,10 @@ class RequestExceptionHandlerTest < ActionController::IntegrationTest
         render :text => exception.class.name, :status => 505
       end
 
-      with_test_routing do
+      #with_test_routing do
         post "/parse", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
         assert_response 505
-      end
+      #end
     ensure
       TestController.rescue_handlers.replace(rescue_handlers)
     end
@@ -208,26 +180,17 @@ class RequestExceptionHandlerTest < ActionController::IntegrationTest
 
   private
 
-  def assert_xml_parse_exception(error)
-    assert_instance_of REXML::ParseException, error
-  end
-
-  def assert_json_parse_exception(error)
-    if ActiveSupport::JSON.respond_to?(:parse_error) # 2.3.5
-      parse_error_class = ActiveSupport::JSON.parse_error
-      assert_instance_of parse_error_class, error
-    else
-      assert_instance_of ActiveSupport::JSON::ParseError, error
+    def assert_xml_parse_exception(error)
+      assert_instance_of REXML::ParseException, error
     end
-  end
 
-  def with_test_routing
-    with_routing do |set|
-      set.draw do |map|
-        map.connect '/:action', :controller => "test"
+    def assert_json_parse_exception(error)
+      if ActiveSupport::JSON.respond_to?(:parse_error) # 2.3.5
+        parse_error_class = ActiveSupport::JSON.parse_error
+        assert_instance_of parse_error_class, error
+      else
+        assert_instance_of ActiveSupport::JSON::ParseError, error
       end
-      yield
     end
-  end
 
 end
