@@ -32,8 +32,14 @@ class TestController < ActionController::Base
 
 end
 
-ActionController::Routing::Routes.draw do |map|
+if defined? ActionController::Routing::Routes
+  ActionController::Routing::Routes.draw do |map|
     map.connect '/:action', :controller => "test"
+  end
+else
+  TestApp::Application.routes.draw do |map|
+    map.connect '/:action', :controller => "test"
+  end
 end
 
 class RequestExceptionHandlerTest < ActionController::IntegrationTest
