@@ -57,4 +57,4 @@ handlers the same way You're (hopefully) using them for Your own exceptions :
 
     end
 
-http://blog.kares.org/search/label/request_exception_handler
+[http://blog.kares.org/search/label/request_exception_handler](http://blog.kares.org/search/label/request_exception_handler)
