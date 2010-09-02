@@ -4,10 +4,11 @@ RequestExceptionHandler
 Rails is not capable of calling Your exception handlers when an error occurs
 during the parsing of request parameters (e.g. in case of invalid XML body).
 
-This will hopefully change in Rails 3, but until then I've created this plugin
+This will hopefully change someday, but until then I have created this plugin
 that monkey-patches request parameter parsing to allow more flexibility when
-handling parsing errors. The plugin has been tested on 2.3.x, 2.2.3 and 2.1.x
-but should work with any Rails 2.x version.
+an invalid request body is received.
+
+The plugin has been tested on 2.3.x, 2.2.3 and 2.1.x as well as on Rails 3.0.0.
 
 
 Install
@@ -15,7 +16,7 @@ Install
 
 Installable as a plain-old rails plugin:
 
-    ./script/plugin install git://github.com/kares/request_exception_handler.git
+    script/plugin install git://github.com/kares/request_exception_handler.git
 
 Example
 =======
@@ -57,4 +58,11 @@ handlers the same way You're (hopefully) using them for Your own exceptions :
 
     end
 
-[http://blog.kares.org/search/label/request_exception_handler](http://blog.kares.org/search/label/request_exception_handler)
+If You're not using REXML as a parsing backend the exception might vary, e.g.
+for Nokogiri the rescue block would look something like :
+
+    rescue_from 'Nokogiri::XML::SyntaxError' do |exception|
+      render :text => exception.to_s, :status => 422
+    end
+
+<http://blog.kares.org/search/label/request_exception_handler>

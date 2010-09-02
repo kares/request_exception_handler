@@ -45,8 +45,9 @@ require 'action_dispatch/routing' if version >= '3.0.0'
 silence_warnings { RAILS_ENV = "test" }
 
 if version >= '3.0.0'
-
+  
   require 'rails'
+  require 'rails/all'
 
 else
   
@@ -103,7 +104,8 @@ module Rails # make sure we can set the logger
 end
 
 File.open(File.join(File.dirname(__FILE__), 'test.log'), 'w') do |file|
-  RAILS_DEFAULT_LOGGER = Rails.logger = Logger.new(file.path)
+  Rails.logger = Logger.new(file.path)
+  silence_warnings { RAILS_DEFAULT_LOGGER = Rails.logger }
 end
 
 if ActionController::Base.respond_to? :session_options # Rails 2.x
@@ -113,13 +115,16 @@ if ActionController::Base.respond_to? :session_options # Rails 2.x
   ActionController::Base.session_options[:secret] = 'x' * 30
 
 else # since Rails 3.0.0 :
-
-  module TestApp
+  
+  module RequestExceptionHandlerTest
     class Application < Rails::Application
       config.secret_token = 'x' * 30
     end
   end
   
+  # Initialize the rails application
+  RequestExceptionHandlerTest::Application.initialize!
+
 end
 
 # call the plugin's init.rb - thus it's setup as it would in a rails app :

@@ -32,68 +32,91 @@ class TestController < ActionController::Base
 
 end
 
-if defined? ActionController::Routing::Routes
+class TestWithRexmlRescueController < ActionController::Base
+
+  rescue_from 'REXML::ParseException' do |exception|
+    render :text => exception.class.name, :status => 405
+  end
+
+  def index
+    head :ok
+  end
+
+end
+
+class TestWithNokogiriRescueController < ActionController::Base
+
+  rescue_from 'Nokogiri::XML::SyntaxError' do |exception|
+    render :text => exception.class.name, :status => 505
+  end
+
+  def index
+    head :ok
+  end
+
+end
+
+if Rails.version < '3.0.0'
   ActionController::Routing::Routes.draw do |map|
+    map.connect '/parse_with_rexml_rescue_block',
+                :controller => 'test_with_rexml_rescue', :action => 'index'
+    map.connect '/parse_with_nokogiri_rescue_block',
+                :controller => 'test_with_nokogiri_rescue', :action => 'index'
     map.connect '/:action', :controller => "test"
   end
 else
-  TestApp::Application.routes.draw do |map|
-    map.connect '/:action', :controller => "test"
+  RequestExceptionHandlerTest::Application.routes.draw do
+    match "/parse_with_rexml_rescue_block", :to => 'test_with_rexml_rescue#index'
+    match "/parse_with_nokogiri_rescue_block", :to => 'test_with_nokogiri_rescue#index'
+    match '/parse' => "test#parse"
+    match '/parse_with_check_request_exception_skipped', :to => "test#parse_with_check_request_exception_skipped"
+    match '/parse_with_check_request_exception_replaced', :to => "test#parse_with_check_request_exception_replaced"
   end
 end
 
-class RequestExceptionHandlerTest < ActionController::IntegrationTest
-
-#  def test_show_session_options
-#    with_test_routing do
-#
-#      env = {}
-#      content = '{"object": {}}'
-#
-#      env.update(
-#        "REQUEST_METHOD" => 'POST',
-#        "REQUEST_URI"    => '/parse',
-#        "HTTP_HOST"      => 'test.host',
-#        "REMOTE_ADDR"    => '127.0.0.1',
-#        "SERVER_PORT"    => '80',
-#        "CONTENT_TYPE"   => "application/json",
-#        "CONTENT_LENGTH" => content.length.to_s,
-#        #"HTTP_COOKIE"    => encode_cookies,
-#        "HTTPS"          => "off",
-#        "HTTP_ACCEPT"    => "text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.5"
-#      )
-#
-#      data = content #"#{CGI.escape(nil)}=#{CGI.escape(content.to_s)}"
-#      env['rack.input'] = data.is_a?(IO) ? data : StringIO.new(data || '')
-#
-#      #status, headers, result_body = ActionController::Dispatcher.new.mark_as_test_request!.call(env)
-#
-#      request = ActionController::RackRequest.new(env)
-#      response = ActionController::RackResponse.new(request)
-#      controller = ActionController::Routing::Routes.recognize(request)
-#      puts request.session_options.inspect
-#      controller.process(request, response) #.out(output)
-#
-#    end
-#  end
+class RequestExceptionHandlerJsonTest < ActionController::IntegrationTest
+    #defined?(ActionDispatch::IntegrationTest) ?
+      #ActionDispatch::IntegrationTest : ActionController::IntegrationTest
 
   def test_parse_valid_json
-    post "/parse", "{\"cicinbrus\": {\"name\": \"Ferko\"}}", 'CONTENT_TYPE' => 'application/json'
+    #assert_routing '/parse', { :controller => "test", :action => "parse" }
+    post "/parse", '{"cicinbrus": {"name": "Ferko"}}', 'CONTENT_TYPE' => 'application/json'
     assert_response 200
   end
 
   def test_parse_invalid_json_returns_500_by_default
-    post "/parse", "{\"cicinbrus\": {\"name\": \"Ferko\"}", 'CONTENT_TYPE' => 'application/json'
+    post "/parse", '{"cicinbrus": {"name": "Ferko"}', 'CONTENT_TYPE' => 'application/json'
     assert_response 500
   end
 
+  def test_request_exception_returns_parse_exception_on_invalid_json_request
+    post "/parse", "{\"cicinbrus\": {\"name: \"Ferko\"}}", 'CONTENT_TYPE' => 'application/json'
+    assert_not_nil controller.request_exception
+    assert_json_parse_exception controller.request_exception
+  end
+
+  private
+
+    def assert_json_parse_exception(error)
+      if ActiveSupport::JSON.respond_to?(:parse_error) # 2.3.5
+        parse_error_class = ActiveSupport::JSON.parse_error
+        assert_instance_of parse_error_class, error
+      else
+        assert_instance_of ActiveSupport::JSON::ParseError, error
+      end
+    end
+
+end
+
   ###
+
+class RequestExceptionHandlerXmlTest < ActionController::IntegrationTest
 
   def test_parse_valid_xml
     post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
     assert_response 200
   end
-  
+
   def test_parse_invalid_xml_returns_500_by_default
     post "/parse", "<cicinbrus> <name>Ferko<name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
     assert_response 500
@@ -116,12 +139,6 @@ class RequestExceptionHandlerTest < ActionController::IntegrationTest
     post "/parse", "<cicinbrus> <name>Ferko</namee> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
     assert_not_nil controller.request_exception
     assert_xml_parse_exception controller.request_exception
-  end
-
-  def test_request_exception_returns_parse_exception_on_invalid_json_request
-    post "/parse", "{\"cicinbrus\": {\"name: \"Ferko\"}}", 'CONTENT_TYPE' => 'application/json'
-    assert_not_nil controller.request_exception
-    assert_json_parse_exception controller.request_exception
   end
 
   def test_request_exception_gets_cleared_for_another_valid_request
@@ -169,18 +186,21 @@ class RequestExceptionHandlerTest < ActionController::IntegrationTest
   end
 
   def test_on_parse_error_custom_rescue_handler_gets_called
-    rescue_handlers = TestController.rescue_handlers.dup
-    begin
-      TestController.rescue_from 'REXML::ParseException' do |exception|
-        render :text => exception.class.name, :status => 505
-      end
+    post "/parse_with_rexml_rescue_block", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
+    #puts controller.request_exception.class.inspect
+    assert_response 405
+  end
 
-      #with_test_routing do
-        post "/parse", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
-        assert_response 505
-      #end
+  def test_on_parse_error_custom_rescue_handler_gets_called_for_nokogiri
+    require 'nokogiri'
+    backend = ActiveSupport::XmlMini.backend
+    begin
+      ActiveSupport::XmlMini.backend = 'Nokogiri'
+      post "/parse_with_nokogiri_rescue_block", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
+      #puts controller.request_exception.class.inspect
+      assert_response 505
     ensure
-      TestController.rescue_handlers.replace(rescue_handlers)
+      ActiveSupport::XmlMini.backend = backend
     end
   end
 
@@ -188,15 +208,6 @@ class RequestExceptionHandlerTest < ActionController::IntegrationTest
 
     def assert_xml_parse_exception(error)
       assert_instance_of REXML::ParseException, error
-    end
-
-    def assert_json_parse_exception(error)
-      if ActiveSupport::JSON.respond_to?(:parse_error) # 2.3.5
-        parse_error_class = ActiveSupport::JSON.parse_error
-        assert_instance_of parse_error_class, error
-      else
-        assert_instance_of ActiveSupport::JSON::ParseError, error
-      end
     end
 
 end
