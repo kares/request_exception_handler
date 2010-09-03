@@ -1,4 +1,5 @@
-require File.join(File.dirname(__FILE__), 'test_helper')
+# in Ruby 1.9.2+ $ does not include the current path :
+require File.expand_path('test_helper', File.dirname(__FILE__))
 
 #
 # NOTE: due to the test_helper.rb argument parsing this test might
