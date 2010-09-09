@@ -45,12 +45,9 @@ require 'action_dispatch/routing' if version >= '3.0.0'
 silence_warnings { RAILS_ENV = "test" }
 
 if version >= '3.0.0'
-  
   require 'rails'
   require 'rails/all'
-
 else
-  
   module Rails
     class << self
       
@@ -62,12 +59,16 @@ else
         @initialized ||= initialized
       end
 
-      def root
-        if defined?(RAILS_ROOT)
-          RAILS_ROOT
-        else
-          nil
+      def backtrace_cleaner
+        @@backtrace_cleaner ||= begin
+          require 'rails/gem_dependency' # backtrace_cleaner depends on this !
+          require 'rails/backtrace_cleaner'
+          Rails::BacktraceCleaner.new
         end
+      end
+
+      def root
+        Pathname.new(RAILS_ROOT) if defined?(RAILS_ROOT)
       end
 
       def env
@@ -94,7 +95,6 @@ else
       
     end
   end
-  
 end
 
 module Rails # make sure we can set the logger
