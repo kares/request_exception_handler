@@ -1,4 +1,3 @@
-# in Ruby 1.9.2+ $ does not include the current path :
 require File.expand_path('test_helper', File.dirname(__FILE__))
 
 #
@@ -76,11 +75,8 @@ else
 end
 
 class RequestExceptionHandlerJsonTest < ActionController::IntegrationTest
-    #defined?(ActionDispatch::IntegrationTest) ?
-      #ActionDispatch::IntegrationTest : ActionController::IntegrationTest
 
   def test_parse_valid_json
-    #assert_routing '/parse', { :controller => "test", :action => "parse" }
     post "/parse", '{"cicinbrus": {"name": "Ferko"}}', 'CONTENT_TYPE' => 'application/json'
     assert_response 200
   end
@@ -109,8 +105,6 @@ class RequestExceptionHandlerJsonTest < ActionController::IntegrationTest
 
 end
 
-  ###
-
 class RequestExceptionHandlerXmlTest < ActionController::IntegrationTest
 
   def test_parse_valid_xml
@@ -122,8 +116,6 @@ class RequestExceptionHandlerXmlTest < ActionController::IntegrationTest
     post "/parse", "<cicinbrus> <name>Ferko<name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
     assert_response 500
   end
-
-  ###
 
   def test_controller_responds_to_request_exception_and_returns_nil_on_valid_request
     post "/parse"
@@ -145,22 +137,6 @@ class RequestExceptionHandlerXmlTest < ActionController::IntegrationTest
   def test_request_exception_gets_cleared_for_another_valid_request
     post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus ", 'CONTENT_TYPE' => 'application/xml'
     post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
-
-    #session = self.instance_variable_get(:@integration_session)
-    #request = session.instance_variable_get(:@request)
-    #routes = ActionController::Routing::Routes
-    #path = request.path
-    #puts 'path = ' + path.inspect
-    #reg_env = routes.extract_request_environment(request)
-    #puts 'env = ' + reg_env.inspect
-    #params = routes.recognize_path(request.path, req_env)
-    #routes.routes.each do |route|
-    #  result = route.recognize('/test/parse/10', reg_env) #and return result
-    #  puts "#{route} = #{result.inspect}"
-    #end
-    #request.path_parameters = params.with_indifferent_access
-    #"#{params[:controller].camelize}Controller".constantize
-
     assert_nil controller.request_exception
   end
 
@@ -188,21 +164,32 @@ class RequestExceptionHandlerXmlTest < ActionController::IntegrationTest
 
   def test_on_parse_error_custom_rescue_handler_gets_called
     post "/parse_with_rexml_rescue_block", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
-    #puts controller.request_exception.class.inspect
     assert_response 405
   end
 
-  def test_on_parse_error_custom_rescue_handler_gets_called_for_nokogiri
-    require 'nokogiri'
-    backend = ActiveSupport::XmlMini.backend
-    begin
-      ActiveSupport::XmlMini.backend = 'Nokogiri'
-      post "/parse_with_nokogiri_rescue_block", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
-      #puts controller.request_exception.class.inspect
-      assert_response 505
-    ensure
-      ActiveSupport::XmlMini.backend = backend
+  if Rails.version >= '2.3'
+
+    def test_on_parse_error_custom_rescue_handler_gets_called_for_nokogiri
+      nokogiri =
+        begin
+          require 'nokogiri'
+        rescue LoadError
+          :nil
+        end
+      if nokogiri != :nil
+        backend = ActiveSupport::XmlMini.backend
+        begin
+          ActiveSupport::XmlMini.backend = 'Nokogiri'
+          post "/parse_with_nokogiri_rescue_block", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
+          assert_response 505
+        ensure
+          ActiveSupport::XmlMini.backend = backend
+        end
+      else
+        puts "nokogiri not available - test skipped !"
+      end
     end
+
   end
 
   private

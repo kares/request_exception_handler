@@ -40,13 +40,10 @@ require 'action_controller/session_management' if version < '3.0.0'
 require 'action_dispatch' if version >= '3.0.0'
 require 'action_dispatch/routing' if version >= '3.0.0'
 
-# Make double-sure the RAILS_ENV is set to test,
-# so fixtures are loaded to the right database
-silence_warnings { RAILS_ENV = "test" }
-
 if version >= '3.0.0'
   require 'rails'
   require 'rails/all'
+  require 'rails/test_help'
 else
   module Rails
     class << self
@@ -60,21 +57,23 @@ else
       end
 
       def backtrace_cleaner
-        @@backtrace_cleaner ||= begin
-          require 'rails/gem_dependency' # backtrace_cleaner depends on this !
-          require 'rails/backtrace_cleaner'
-          Rails::BacktraceCleaner.new
-        end
+        @@backtrace_cleaner ||=
+          begin
+            require 'rails/gem_dependency' # backtrace_cleaner depends on this !
+            require 'rails/backtrace_cleaner'
+            Rails::BacktraceCleaner.new
+          rescue LoadError
+            nil
+          end
       end
 
       def root
-        Pathname.new(RAILS_ROOT) if defined?(RAILS_ROOT)
+        require 'pathname'
+        Pathname.new(RAILS_ROOT)
       end
 
       def env
-        @_env ||= begin
-          ActiveSupport::StringInquirer.new(RAILS_ENV)
-        end
+        @_env ||= ActiveSupport::StringInquirer.new(RAILS_ENV)
       end
 
       def cache
@@ -97,6 +96,14 @@ else
   end
 end
 
+silence_warnings { RAILS_ROOT = File.expand_path( File.dirname(__FILE__) ) }
+
+# Make double-sure the RAILS_ENV is set to test,
+# so fixtures are loaded to the right database
+silence_warnings { RAILS_ENV = "test" }
+
+Rails.backtrace_cleaner.remove_silencers! if Rails.backtrace_cleaner
+
 module Rails # make sure we can set the logger
   class << self
     attr_accessor :logger
@@ -105,7 +112,6 @@ end
 
 File.open(File.join(File.dirname(__FILE__), 'test.log'), 'w') do |file|
   Rails.logger = Logger.new(file.path)
-  silence_warnings { RAILS_DEFAULT_LOGGER = Rails.logger }
 end
 
 if ActionController::Base.respond_to? :session_options # Rails 2.x
@@ -125,6 +131,14 @@ else # since Rails 3.0.0 :
   # Initialize the rails application
   RequestExceptionHandlerTest::Application.initialize!
 
+end
+
+ActiveSupport::TestCase.class_eval do
+
+  def setup_fixtures
+    return nil # Rails 3 load hooks !
+  end
+  
 end
 
 # call the plugin's init.rb - thus it's setup as it would in a rails app :
