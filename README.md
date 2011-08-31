@@ -4,36 +4,39 @@ RequestExceptionHandler
 Rails is not capable of calling Your exception handlers when an error occurs
 during the parsing of request parameters (e.g. in case of invalid XML body).
 
-This will hopefully change someday, but until then I have created this plugin
-that monkey-patches request parameter parsing to allow more flexibility when
+This will hopefully change someday, but until then I have created this biutiful 
+monkey-patch for request parameter parsing to allow more flexibility when
 an invalid request body is received.
 
-The plugin has been tested on 2.3.x, 2.2.3 and 2.1.x as well as on Rails 3.0.0.
+Code has been tested on 2.3, 2.2.3 and 2.1 as well as on Rails 3.0 / 3.1.
 
 
 Install
 =======
 
-Installable as a plain-old rails plugin:
+    gem 'request_exception_handler'
+
+or as a plain-old rails plugin :
 
     script/plugin install git://github.com/kares/request_exception_handler.git
 
 Example
 =======
 
-The plugin hooks into request parameter parsing and allows a request to be
-constructed even if the params can not be parsed from the submited content.
-A before filter is installed that checkes for a request exception and re-raises
-it thus it seems to Rails that the exception comes from the application code and
-is processed as all other "business" exceptions, You might skip this filter and
-install Your own to handle such cases :
+The code hooks into parameter parsing and allows a request to be constructed 
+even if the params can not be parsed from the submitted raw content. A before 
+filter is installed that checks for a request exception and re-raises it thus 
+it seems to Rails that the exception comes from the application code and is 
+processed as all other "business" exceptions. 
+You might skip this filter and install Your own to handle such cases (it's good 
+to make sure the filter gets to the beginning of the chain) :
 
     class MyController < ApplicationController
 
       skip_before_filter :check_request_exception # filter the plugin installed
 
       # custom before filter use request_exception to detect occured errors
-      before_filter :return_409_on_json_errors
+      prepend_before_filter :return_409_on_json_errors
 
       private
 
@@ -64,5 +67,3 @@ for Nokogiri the rescue block would look something like :
     rescue_from 'Nokogiri::XML::SyntaxError' do |exception|
       render :text => exception.to_s, :status => 422
     end
-
-<http://blog.kares.org/search/label/request_exception_handler>

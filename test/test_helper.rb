@@ -33,16 +33,24 @@ require 'action_controller'
 require 'action_controller/test_case'
 
 require 'rails/version'
-puts "emulating Rails.version = #{version = Rails::VERSION::STRING}"
+puts "emulating Rails.version = #{Rails::VERSION::STRING}"
 
-require 'action_controller/integration' if version < '3.0.0'
-require 'action_controller/session_management' if version < '3.0.0'
-require 'action_dispatch' if version >= '3.0.0'
-require 'action_dispatch/routing' if version >= '3.0.0'
+require 'action_controller/integration' if Rails::VERSION::MAJOR < 3
+require 'action_controller/session_management' if Rails::VERSION::MAJOR < 3
+require 'action_dispatch' if Rails::VERSION::MAJOR >= 3
+require 'action_dispatch/routing' if Rails::VERSION::MAJOR >= 3
 
-if version >= '3.0.0'
+if Rails::VERSION::MAJOR >= 3
+  ActiveSupport::Deprecation.behavior = :stderr
+else
+  ActiveSupport::Deprecation.debug = true
+end
+
+if Rails::VERSION::MAJOR >= 3
   require 'rails'
-  require 'rails/all'
+  # a minimal require 'rails/all' :
+  require "action_controller/railtie"
+  require "rails/test_unit/railtie"
   require 'rails/test_help'
 else
   module Rails
@@ -141,6 +149,5 @@ ActiveSupport::TestCase.class_eval do
   
 end
 
-# call the plugin's init.rb - thus it's setup as it would in a rails app :
 $LOAD_PATH.unshift File.join(File.dirname(__FILE__), '../lib')
-require File.join(File.dirname(__FILE__), '../init')
+require 'request_exception_handler'

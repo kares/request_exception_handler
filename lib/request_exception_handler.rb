@@ -5,7 +5,7 @@ module RequestExceptionHandler
     Thread.current[:request_exception] = exception
     request_body = request.respond_to?(:body) ? request.body : request.raw_post
 
-    logger = defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER : Logger.new($stderr)
+    logger = RequestExceptionHandler.logger
     if logger.info?
       content_log = request_body
       if request_body.is_a?(StringIO)
@@ -31,6 +31,12 @@ module RequestExceptionHandler
     Thread.current[:request_exception] = nil
   end
 
+  def self.logger
+    defined?(Rails.logger) ? Rails.logger : 
+      defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER : 
+        Logger.new($stderr)
+  end
+  
   def self.included(base)
     base.prepend_before_filter :check_request_exception
   end
@@ -45,6 +51,70 @@ module RequestExceptionHandler
     @_request_exception = Thread.current[:request_exception]
     RequestExceptionHandler.reset_request_exception
     @_request_exception
+  end
+
+end
+
+require 'action_controller/base'
+ActionController::Base.send :include, RequestExceptionHandler
+
+# NOTE: Rails monkey patching follows :
+
+if defined? ActionDispatch::ParamsParser # Rails 3.x
+
+  ActionDispatch::ParamsParser.class_eval do
+
+    def parse_formatted_parameters_with_exception_handler(env)
+      begin
+        out = parse_formatted_parameters_without_exception_handler(env)
+        RequestExceptionHandler.reset_request_exception # make sure it's nil
+        out
+      rescue Exception => e # YAML, XML or Ruby code block errors
+        handler = RequestExceptionHandler.parse_request_parameters_exception_handler
+        handler ? handler.call(ActionDispatch::Request.new(env), e) : raise
+      end
+    end
+
+    alias_method_chain :parse_formatted_parameters, :exception_handler
+
+  end
+
+elsif defined? ActionController::ParamsParser # Rails 2.3.x
+
+  ActionController::ParamsParser.class_eval do
+
+    def parse_formatted_parameters_with_exception_handler(env)
+      begin
+        out = parse_formatted_parameters_without_exception_handler(env)
+        RequestExceptionHandler.reset_request_exception # make sure it's nil
+        out
+      rescue Exception => e # YAML, XML or Ruby code block errors
+        handler = RequestExceptionHandler.parse_request_parameters_exception_handler
+        handler ? handler.call(ActionController::Request.new(env), e) : raise
+      end
+    end
+
+    alias_method_chain :parse_formatted_parameters, :exception_handler
+
+  end
+
+else # old-style Rails < 2.3
+
+  ActionController::AbstractRequest.class_eval do
+
+    def parse_formatted_request_parameters_with_exception_handler
+      begin
+        out = parse_formatted_request_parameters_without_exception_handler
+        RequestExceptionHandler.reset_request_exception # make sure it's nil
+        out
+      rescue Exception => e # YAML, XML or Ruby code block errors
+        handler = RequestExceptionHandler.parse_request_parameters_exception_handler
+        handler ? handler.call(self, e) : raise
+      end
+    end
+
+    alias_method_chain :parse_formatted_request_parameters, :exception_handler
+
   end
 
 end
