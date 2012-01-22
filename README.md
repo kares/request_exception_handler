@@ -1,14 +1,14 @@
 RequestExceptionHandler
 =======================
 
-Rails is not capable of calling Your exception handlers when an error occurs
+Rails is not capable of calling your exception handlers when an error occurs
 during the parsing of request parameters (e.g. in case of invalid XML body).
 
-This will hopefully change someday, but until then I have created this biutiful 
+This will hopefully change someday, but until then I have created this biutiful
 monkey-patch for request parameter parsing to allow more flexibility when
 an invalid request body is received.
 
-Code has been tested on 2.3, 2.2.3 and 2.1 as well as on Rails 3.0 / 3.1.
+Tested on 3.0, 3.1 and 3.2 it should still work on Rails 2.3 and 2.2.3 as well.
 
 
 Install
@@ -23,12 +23,12 @@ or as a plain-old rails plugin :
 Example
 =======
 
-The code hooks into parameter parsing and allows a request to be constructed 
-even if the params can not be parsed from the submitted raw content. A before 
-filter is installed that checks for a request exception and re-raises it thus 
-it seems to Rails that the exception comes from the application code and is 
-processed as all other "business" exceptions. 
-You might skip this filter and install Your own to handle such cases (it's good 
+The code hooks into parameter parsing and allows a request to be constructed
+even if the params can not be parsed from the submitted raw content. A before
+filter is installed that checks for a request exception and re-raises it thus
+it seems to Rails that the exception comes from the application code and is
+processed as all other "business" exceptions.
+you might skip this filter and install your own to handle such cases (it's good
 to make sure the filter gets to the beginning of the chain) :
 
     class MyController < ApplicationController
@@ -51,7 +51,7 @@ to make sure the filter gets to the beginning of the chain) :
     end
 
 Another option of how to modify the returned 500 status is to use exception
-handlers the same way You're (hopefully) using them for Your own exceptions :
+handlers the same way you're (hopefully) using them for your own exceptions :
 
     class ApplicationController < ActionController::Base
 
@@ -61,7 +61,7 @@ handlers the same way You're (hopefully) using them for Your own exceptions :
 
     end
 
-If You're not using REXML as a parsing backend the exception might vary, e.g.
+If you're not using REXML as a parsing backend the exception might vary, e.g.
 for Nokogiri the rescue block would look something like :
 
     rescue_from 'Nokogiri::XML::SyntaxError' do |exception|
