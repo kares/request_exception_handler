@@ -1,8 +1,11 @@
-
+# The mixin that provides the +request_exception+
+# by default included into +ActionController::Base+
 module RequestExceptionHandler
 
+  THREAD_LOCAL_NAME = :_request_exception
+  
   @@parse_request_parameters_exception_handler = lambda do |request, exception|
-    Thread.current[:request_exception] = exception
+    Thread.current[THREAD_LOCAL_NAME] = exception
     request_body = request.respond_to?(:body) ? request.body : request.raw_post
 
     logger = RequestExceptionHandler.logger
@@ -25,12 +28,19 @@ module RequestExceptionHandler
     { "body" => request_body, "content_type" => content_type, "content_length" => request.content_length }
   end
   
-  mattr_accessor :parse_request_parameters_exception_handler
-
-  def self.reset_request_exception
-    Thread.current[:request_exception] = nil
+  begin
+    mattr_accessor :parse_request_parameters_exception_handler
+  rescue NoMethodError => e
+    require('active_support/core_ext/module/attribute_accessors') && retry
+    raise e
   end
 
+  # Resets the current +request_exception+ (to nil).
+  def self.reset_request_exception
+    Thread.current[THREAD_LOCAL_NAME] = nil
+  end
+
+  # Retrieves the Rails logger.
   def self.logger
     defined?(Rails.logger) ? Rails.logger : 
       defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER : 
@@ -41,14 +51,16 @@ module RequestExceptionHandler
     base.prepend_before_filter :check_request_exception
   end
 
+  # Checks and raises a +request_exception+ (gets prepended as a before filter).
   def check_request_exception
     e = request_exception
     raise e if e && e.is_a?(Exception)
   end
 
+  # Retrieves and keeps track of the current request exception if any.
   def request_exception
     return @_request_exception if defined? @_request_exception
-    @_request_exception = Thread.current[:request_exception]
+    @_request_exception = Thread.current[THREAD_LOCAL_NAME]
     RequestExceptionHandler.reset_request_exception
     @_request_exception
   end
