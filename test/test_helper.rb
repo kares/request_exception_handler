@@ -16,15 +16,15 @@ version =
 if version
   RAILS_VERSION = version
   gem 'activesupport', "= #{RAILS_VERSION}"
-  gem 'activerecord', "= #{RAILS_VERSION}"
+  #gem 'activerecord', "= #{RAILS_VERSION}"
   gem 'actionpack', "= #{RAILS_VERSION}"
-  gem 'actionmailer', "= #{RAILS_VERSION}"
+  #gem 'actionmailer', "= #{RAILS_VERSION}"
   gem 'rails', "= #{RAILS_VERSION}"
 else
   gem 'activesupport'
-  gem 'activerecord'
+  #gem 'activerecord'
   gem 'actionpack'
-  gem 'actionmailer'
+  #gem 'actionmailer'
   gem 'rails'
 end
 

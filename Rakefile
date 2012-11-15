@@ -1,10 +1,9 @@
-require 'rake'
-require 'rake/testtask'
-require 'rdoc/task'
+#!/usr/bin/env rake
 
 desc 'Default: run unit tests.'
 task :default => :test
 
+require 'rake/testtask'
 desc 'Test the request_exception_handler plugin.'
 Rake::TestTask.new(:test) do |t|
   t.libs << 'lib'
@@ -12,11 +11,9 @@ Rake::TestTask.new(:test) do |t|
   t.verbose = true
 end
 
-desc 'Generate documentation for the request_exception_handler plugin.'
-Rake::RDocTask.new(:rdoc) do |rdoc|
-  rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = 'RequestExceptionHandler'
-  rdoc.options << '--line-numbers' << '--inline-source'
-  rdoc.rdoc_files.include('README')
-  rdoc.rdoc_files.include('lib/**/*.rb')
+begin
+  require 'bundler/gem_helper'
+  Bundler::GemHelper.class_eval { def version_tag; "#{version}"; end }
+  require 'bundler/gem_tasks'
+rescue LoadError
 end

@@ -1,5 +1,4 @@
-RequestExceptionHandler
-=======================
+# RequestExceptionHandler
 
 Rails is not capable of calling your exception handlers when an error occurs
 during the parsing of request parameters (e.g. in case of invalid XML body).
@@ -11,8 +10,7 @@ an invalid request body is received.
 Tested on 3.0, 3.1 and 3.2 it should still work on Rails 2.3 and 2.2.3 as well.
 
 
-Install
-=======
+## Install
 
     gem 'request_exception_handler'
 
@@ -20,8 +18,7 @@ or as a plain-old rails plugin :
 
     script/plugin install git://github.com/kares/request_exception_handler.git
 
-Example
-=======
+## Example
 
 The code hooks into parameter parsing and allows a request to be constructed
 even if the params can not be parsed from the submitted raw content. A before
@@ -67,3 +64,8 @@ for Nokogiri the rescue block would look something like :
     rescue_from 'Nokogiri::XML::SyntaxError' do |exception|
       render :text => exception.to_s, :status => 422
     end
+
+## Copyright
+
+Copyright (c) 2009-2012 [Karol Bucek](https://github.com/kares). 
+See LICENSE (http://www.apache.org/licenses/LICENSE-2.0) for details.
