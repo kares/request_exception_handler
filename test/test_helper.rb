@@ -1,4 +1,5 @@
 require 'rubygems'
+gem 'test-unit' rescue nil
 require 'test/unit'
 
 # enable testing with different version of rails via argv :
