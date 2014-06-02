@@ -3,7 +3,7 @@
 module RequestExceptionHandler
 
   THREAD_LOCAL_NAME = :_request_exception
-  
+
   @@parse_request_parameters_exception_handler = lambda do |request, exception|
     Thread.current[THREAD_LOCAL_NAME] = exception
     request_body = request.respond_to?(:body) ? request.body : request.raw_post
@@ -19,7 +19,7 @@ module RequestExceptionHandler
                   "\nContents:\n#{content_log}\n"
       request_body.pos = pos if pos
     end
-              
+
     content_type = if request.respond_to?(:content_type_with_parameters)
       request.send :content_type_with_parameters # AbstractRequest
     else # rack request
@@ -27,7 +27,7 @@ module RequestExceptionHandler
     end
     { "body" => request_body, "content_type" => content_type, "content_length" => request.content_length }
   end
-  
+
   begin
     mattr_accessor :parse_request_parameters_exception_handler
   rescue NoMethodError => e
@@ -42,11 +42,11 @@ module RequestExceptionHandler
 
   # Retrieves the Rails logger.
   def self.logger
-    defined?(Rails.logger) ? Rails.logger : 
-      defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER : 
+    defined?(Rails.logger) ? Rails.logger :
+      defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER :
         Logger.new($stderr)
   end
-  
+
   def self.included(base)
     base.prepend_before_filter :check_request_exception
   end
@@ -70,11 +70,36 @@ end
 require 'action_controller/base'
 ActionController::Base.send :include, RequestExceptionHandler
 
-# NOTE: Rails monkey patching follows :
+# NOTE: Rails "parameters-parser" monkey patching follows :
 
-if defined? ActionDispatch::ParamsParser # Rails 3.x
+if defined? ActionDispatch::ParamsParser::ParseError # Rails 4.x
 
-  ActionDispatch::ParamsParser.class_eval do
+  class ActionDispatch::ParamsParser
+
+    alias_method 'parse_formatted_parameters_without_exception_handler', 'parse_formatted_parameters'
+
+    def parse_formatted_parameters_with_exception_handler(env)
+      begin
+        out = parse_formatted_parameters_without_exception_handler(env)
+        RequestExceptionHandler.reset_request_exception # make sure it's nil
+        out
+      rescue ParseError => e
+        e = e.original_exception
+        handler = RequestExceptionHandler.parse_request_parameters_exception_handler
+        handler ? handler.call(ActionDispatch::Request.new(env), e) : raise
+      rescue => e # all Exception-s get wrapped into ParseError ... but just in case
+        handler = RequestExceptionHandler.parse_request_parameters_exception_handler
+        handler ? handler.call(ActionDispatch::Request.new(env), e) : raise
+      end
+    end
+
+    alias_method 'parse_formatted_parameters', 'parse_formatted_parameters_with_exception_handler'
+
+  end
+
+elsif defined? ActionDispatch::ParamsParser # Rails 3.x
+
+  class ActionDispatch::ParamsParser
 
     def parse_formatted_parameters_with_exception_handler(env)
       begin
@@ -87,13 +112,13 @@ if defined? ActionDispatch::ParamsParser # Rails 3.x
       end
     end
 
-    alias_method_chain :parse_formatted_parameters, :exception_handler
+    alias_method_chain 'parse_formatted_parameters', 'exception_handler'
 
   end
 
 elsif defined? ActionController::ParamsParser # Rails 2.3.x
 
-  ActionController::ParamsParser.class_eval do
+  class ActionController::ParamsParser
 
     def parse_formatted_parameters_with_exception_handler(env)
       begin
@@ -106,7 +131,7 @@ elsif defined? ActionController::ParamsParser # Rails 2.3.x
       end
     end
 
-    alias_method_chain :parse_formatted_parameters, :exception_handler
+    alias_method_chain 'parse_formatted_parameters', 'exception_handler'
 
   end
 
