@@ -27,6 +27,16 @@ end
 require 'rails/version'
 puts "emulating Rails.version = #{Rails::VERSION::STRING}"
 
+begin
+  require 'iconv'
+rescue LoadError
+  begin
+    require 'active_support/inflector'
+  rescue LoadError
+    $LOADED_FEATURES << 'iconv.rb'
+    require 'active_support/inflector'
+  end
+end if Rails::VERSION::MAJOR < 3
 require 'active_support'
 require File.expand_path('../test-unit-rails4', __FILE__) if Rails::VERSION::MAJOR >= 4
 require 'active_support/test_case'
