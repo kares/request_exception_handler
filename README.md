@@ -9,6 +9,7 @@ an invalid request body is received.
 
 Tested on 4.x and 3.x but it should still work on Rails 2.3 and 2.2.3 as well.
 
+[![Build Status][0]](http://travis-ci.org/#!/kares/request_exception_handler)
 
 ## Install
 
@@ -74,5 +75,7 @@ end
 
 ## Copyright
 
-Copyright (c) 2009-2014 [Karol Bucek](https://github.com/kares).
+Copyright (c) 2014 [Karol Bucek](https://github.com/kares).
 See LICENSE (http://www.apache.org/licenses/LICENSE-2.0) for details.
+
+[0]: https://secure.travis-ci.org/kares/request_exception_handler.png

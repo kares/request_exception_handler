@@ -8,9 +8,12 @@ env:
   - RAILS_VERSION="~> 3.2.18"
   - RAILS_VERSION="~> 3.0.20"
   - RAILS_VERSION="~> 2.3.18"
+  - RAILS_VERSION="~> 2.2.3"
 matrix:
   exclude:
     - rvm: 1.8.7
       env: RAILS_VERSION="~> 4.0.5"
     - rvm: 1.8.7
       env: RAILS_VERSION="~> 4.1.1"
+    - rvm: jruby
+      env: RAILS_VERSION="~> 2.2.3"
