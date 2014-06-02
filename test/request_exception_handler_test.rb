@@ -3,7 +3,7 @@ require File.expand_path('test_helper', File.dirname(__FILE__))
 #
 # NOTE: due to the test_helper.rb argument parsing this test might
 #       be run with different versions of Rails e.g. :
-# 
+#
 # ruby request_exception_handler_test.rb RAILS_VERSION=2.1.2
 #
 
@@ -64,6 +64,14 @@ if Rails.version < '3.0.0'
                 :controller => 'test_with_nokogiri_rescue', :action => 'index'
     map.connect '/:action', :controller => "test"
   end
+elsif Rails.version >= '4.0.0'
+  RequestExceptionHandlerTest::Application.routes.draw do
+    post "/parse_with_rexml_rescue_block", :to => 'test_with_rexml_rescue#index'
+    post "/parse_with_nokogiri_rescue_block", :to => 'test_with_nokogiri_rescue#index'
+    post '/parse' => "test#parse"
+    post '/parse_with_check_request_exception_skipped', :to => "test#parse_with_check_request_exception_skipped"
+    post '/parse_with_check_request_exception_replaced', :to => "test#parse_with_check_request_exception_replaced"
+  end
 else
   RequestExceptionHandlerTest::Application.routes.draw do
     match "/parse_with_rexml_rescue_block", :to => 'test_with_rexml_rescue#index'
@@ -74,7 +82,14 @@ else
   end
 end
 
-class RequestExceptionHandlerJsonTest < ActionController::IntegrationTest
+begin
+  require 'action_dispatch/testing/integration'
+  IntegrationTest = ActionDispatch::IntegrationTest
+rescue LoadError
+  IntegrationTest = ActionController::IntegrationTest
+end
+
+class RequestExceptionHandlerJsonTest < IntegrationTest
 
   def test_parse_valid_json
     post "/parse", '{"cicinbrus": {"name": "Ferko"}}', 'CONTENT_TYPE' => 'application/json'
@@ -105,7 +120,7 @@ class RequestExceptionHandlerJsonTest < ActionController::IntegrationTest
 
 end
 
-class RequestExceptionHandlerXmlTest < ActionController::IntegrationTest
+class RequestExceptionHandlerXmlTest < IntegrationTest
 
   def test_parse_valid_xml
     post "/parse", "<cicinbrus> <name>Ferko</name> </cicinbrus>", 'CONTENT_TYPE' => 'application/xml'
