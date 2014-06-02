@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'bundler/setup'
+require 'bundler/setup' rescue nil
 
 # enable testing with different version of rails via argv :
 # ruby request_exception_handler_test.rb RAILS_VERSION=2.3.18
@@ -12,14 +12,14 @@ version =
 
 if version
   RAILS_VERSION = version
-  gem 'activesupport', "= #{RAILS_VERSION}"
-  gem 'actionpack', "= #{RAILS_VERSION}"
-  gem 'rails', "= #{RAILS_VERSION}"
+  gem 'activesupport', "#{RAILS_VERSION}"
+  gem 'actionpack', "#{RAILS_VERSION}"
+  gem 'rails', "#{RAILS_VERSION}"
 else
   gem 'activesupport'
   gem 'actionpack'
   gem 'rails'
-end
+end unless defined? Bundler
 
 require 'rails/version'
 puts "emulating Rails.version = #{Rails::VERSION::STRING}"
