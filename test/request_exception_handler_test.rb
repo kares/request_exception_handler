@@ -1,28 +1,15 @@
 require File.expand_path('test_helper', File.dirname(__FILE__))
 
-#
-# NOTE: due to the test_helper.rb argument parsing this test might
-#       be run with different versions of Rails e.g. :
-#
-# ruby request_exception_handler_test.rb RAILS_VERSION=2.1.2
-#
-
 class TestController < ActionController::Base
 
-  def parse
-    head :ok
-  end
+  def parse; head :ok end
 
-  def parse_with_check_request_exception_skipped
-    head :ok
-  end
+  def parse_with_check_request_exception_skipped; head :ok end
 
   skip_before_filter :check_request_exception, :only =>
     [ :parse_with_check_request_exception_skipped, :parse_with_check_request_exception_replaced ]
 
-  def parse_with_check_request_exception_replaced
-    head :ok
-  end
+  def parse_with_check_request_exception_replaced; head :ok end
 
   before_filter :return_501_on_request_exception, :only => [ :parse_with_check_request_exception_replaced ]
 
@@ -38,9 +25,7 @@ class TestWithRexmlRescueController < ActionController::Base
     render :text => exception.class.name, :status => 405
   end
 
-  def index
-    head :ok
-  end
+  def index; head :ok end
 
 end
 
@@ -50,21 +35,11 @@ class TestWithNokogiriRescueController < ActionController::Base
     render :text => exception.class.name, :status => 505
   end
 
-  def index
-    head :ok
-  end
+  def index; head :ok end
 
 end
 
-if Rails.version < '3.0.0'
-  ActionController::Routing::Routes.draw do |map|
-    map.connect '/parse_with_rexml_rescue_block',
-                :controller => 'test_with_rexml_rescue', :action => 'index'
-    map.connect '/parse_with_nokogiri_rescue_block',
-                :controller => 'test_with_nokogiri_rescue', :action => 'index'
-    map.connect '/:action', :controller => "test"
-  end
-elsif Rails.version >= '4.0.0'
+if Rails::VERSION::MAJOR >= 4
   RequestExceptionHandlerTest::Application.routes.draw do
     post "/parse_with_rexml_rescue_block", :to => 'test_with_rexml_rescue#index'
     post "/parse_with_nokogiri_rescue_block", :to => 'test_with_nokogiri_rescue#index'
@@ -72,7 +47,7 @@ elsif Rails.version >= '4.0.0'
     post '/parse_with_check_request_exception_skipped', :to => "test#parse_with_check_request_exception_skipped"
     post '/parse_with_check_request_exception_replaced', :to => "test#parse_with_check_request_exception_replaced"
   end
-else
+elsif Rails::VERSION::MAJOR >= 3
   RequestExceptionHandlerTest::Application.routes.draw do
     match "/parse_with_rexml_rescue_block", :to => 'test_with_rexml_rescue#index'
     match "/parse_with_nokogiri_rescue_block", :to => 'test_with_nokogiri_rescue#index'
@@ -80,13 +55,14 @@ else
     match '/parse_with_check_request_exception_skipped', :to => "test#parse_with_check_request_exception_skipped"
     match '/parse_with_check_request_exception_replaced', :to => "test#parse_with_check_request_exception_replaced"
   end
-end
-
-begin
-  require 'action_dispatch/testing/integration'
-  IntegrationTest = ActionDispatch::IntegrationTest
-rescue LoadError
-  IntegrationTest = ActionController::IntegrationTest
+else
+  ActionController::Routing::Routes.draw do |map|
+    map.connect '/parse_with_rexml_rescue_block',
+                :controller => 'test_with_rexml_rescue', :action => 'index'
+    map.connect '/parse_with_nokogiri_rescue_block',
+                :controller => 'test_with_nokogiri_rescue', :action => 'index'
+    map.connect '/:action', :controller => "test"
+  end
 end
 
 class RequestExceptionHandlerJsonTest < IntegrationTest
@@ -109,14 +85,14 @@ class RequestExceptionHandlerJsonTest < IntegrationTest
 
   private
 
-    def assert_json_parse_exception(error)
-      if ActiveSupport::JSON.respond_to?(:parse_error) # 2.3.5
-        parse_error_class = ActiveSupport::JSON.parse_error
-        assert_instance_of parse_error_class, error
-      else
-        assert_instance_of ActiveSupport::JSON::ParseError, error
-      end
+  def assert_json_parse_exception(error)
+    if ActiveSupport::JSON.respond_to?(:parse_error) # 2.3.5
+      parse_error_class = ActiveSupport::JSON.parse_error
+      assert_instance_of parse_error_class, error
+    else
+      assert_instance_of ActiveSupport::JSON::ParseError, error
     end
+  end
 
 end
 
@@ -182,35 +158,34 @@ class RequestExceptionHandlerXmlTest < IntegrationTest
     assert_response 405
   end
 
-  if Rails.version >= '2.3'
-
-    def test_on_parse_error_custom_rescue_handler_gets_called_for_nokogiri
-      nokogiri =
-        begin
-          require 'nokogiri'
-        rescue LoadError
-          :nil
-        end
-      if nokogiri != :nil
-        backend = ActiveSupport::XmlMini.backend
-        begin
-          ActiveSupport::XmlMini.backend = 'Nokogiri'
-          post "/parse_with_nokogiri_rescue_block", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
-          assert_response 505
-        ensure
-          ActiveSupport::XmlMini.backend = backend
-        end
-      else
-        puts "nokogiri not available - test skipped !"
-      end
-    end
-
+  begin
+    require 'nokogiri'
+    NOKOGIRI = true
+  rescue LoadError
+    NOKOGIRI = false
   end
+
+  def test_on_parse_error_custom_rescue_handler_gets_called_for_nokogiri
+    return skip('nokogiri not available - test skipped !') unless NOKOGIRI
+
+    backend = ActiveSupport::XmlMini.backend
+    begin
+      ActiveSupport::XmlMini.backend = 'Nokogiri'
+      post "/parse_with_nokogiri_rescue_block", "<cicinbrus> <name>Ferko</name>", 'CONTENT_TYPE' => 'application/xml'
+      assert_response 505
+    ensure
+      ActiveSupport::XmlMini.backend = backend
+    end
+  end if Rails.version >= '2.3'
 
   private
 
-    def assert_xml_parse_exception(error)
-      assert_instance_of REXML::ParseException, error
-    end
+  def skip(message = nil)
+    super
+  end
+
+  def assert_xml_parse_exception(error)
+    assert_instance_of REXML::ParseException, error
+  end
 
 end

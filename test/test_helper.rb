@@ -1,16 +1,13 @@
 require 'rubygems'
-gem 'test-unit' rescue nil
-require 'test/unit'
+require 'bundler/setup'
 
 # enable testing with different version of rails via argv :
-# ruby request_exception_handler_test.rb RAILS_VERSION=2.2.2
-
+# ruby request_exception_handler_test.rb RAILS_VERSION=2.3.18
 version =
   if ARGV.find { |opt| /RAILS_VERSION=([\d\.]+)/ =~ opt }
     $~[1]
   else
-    # rake test RAILS_VERSION=2.3.5
-    ENV['RAILS_VERSION']
+    ENV['RAILS_VERSION'] # rake test RAILS_VERSION=3.2.18
   end
 
 if version
@@ -27,6 +24,19 @@ end
 require 'rails/version'
 puts "emulating Rails.version = #{Rails::VERSION::STRING}"
 
+if Rails::VERSION::MAJOR < 4
+  gem 'test-unit' rescue nil
+  begin
+    require 'test/unit'
+  rescue LoadError
+    gem 'minitest'
+    require 'minitest/unit'
+    MiniTest::Unit.autorun
+  end
+else
+  gem 'minitest'
+end
+
 begin
   require 'iconv'
 rescue LoadError
@@ -38,7 +48,6 @@ rescue LoadError
   end
 end if Rails::VERSION::MAJOR < 3
 require 'active_support'
-require File.expand_path('../test-unit-rails4', __FILE__) if Rails::VERSION::MAJOR >= 4
 require 'active_support/test_case'
 require 'action_controller'
 require 'action_controller/test_case'
@@ -48,6 +57,13 @@ require 'action_controller/session_management' if Rails::VERSION::MAJOR < 3
 require 'action_dispatch' if Rails::VERSION::MAJOR >= 3
 require 'action_dispatch/routing' if Rails::VERSION::MAJOR >= 3
 
+begin
+  require 'action_dispatch/testing/integration'
+  IntegrationTest = ActionDispatch::IntegrationTest
+rescue LoadError
+  IntegrationTest = ActionController::IntegrationTest
+end
+
 if Rails::VERSION::MAJOR >= 3
   ActiveSupport::Deprecation.behavior = :stderr
 else
@@ -56,9 +72,6 @@ end
 
 if Rails::VERSION::MAJOR >= 4
   require 'rails'
-  class TestApplication < Rails::Application; end
-  Rails.application = TestApplication.new
-  Rails.application.config.eager_load = true
   # a minimal require 'rails/all' :
   require 'action_controller/railtie'
   require 'rails/test_help'
@@ -124,7 +137,7 @@ silence_warnings { RAILS_ROOT = File.expand_path( File.dirname(__FILE__) ) }
 
 # Make double-sure the RAILS_ENV is set to test,
 # so fixtures are loaded to the right database
-silence_warnings { RAILS_ENV = "test" }
+silence_warnings { RAILS_ENV = 'test' }
 
 Rails.backtrace_cleaner.remove_silencers! if Rails.backtrace_cleaner
 
@@ -147,23 +160,33 @@ if ActionController::Base.respond_to? :session_options # Rails 2.x
 else # since Rails 3.0.0 :
 
   module RequestExceptionHandlerTest
-    class Application < Rails::Application
-      config.secret_token = 'x' * 30
-    end
-  end
 
-  # Initialize the rails application
-  RequestExceptionHandlerTest::Application.initialize!
+    class Application < Rails::Application; end
+
+    Application.configure do
+      if config.respond_to?(:secret_key_base=)
+        config.secret_key_base = 'x' * 30
+      else
+        config.secret_token = 'x' * 30
+      end
+      config.cache_classes = true if config.respond_to?(:cache_classes=)
+      config.eager_load = false if config.respond_to?(:eager_load=)
+      config.action_controller.allow_forgery_protection = false
+      config.active_support.deprecation = :stderr
+    end
+
+    # Since 4.0 only DEFAULT_PARSERS = { Mime::JSON => :json } is setup by default
+    unless ActionDispatch::ParamsParser::DEFAULT_PARSERS[ Mime::XML ]
+      ActionDispatch::ParamsParser::DEFAULT_PARSERS[ Mime::XML ] = Proc.new do
+        |raw_post| ( Hash.from_xml(raw_post) || {} ).with_indifferent_access
+      end
+    end if defined? ActionDispatch::ParamsParser::DEFAULT_PARSERS
+
+    Application.initialize!
+
+  end
 
 end
 
-# ActiveSupport::TestCase.class_eval do
-
-#   def setup_fixtures
-#     return nil # Rails 3 load hooks !
-#   end
-
-# end
-
-$LOAD_PATH.unshift File.join(File.dirname(__FILE__), '../lib')
+$LOAD_PATH.unshift File.expand_path('../lib', File.dirname(__FILE__))
 require 'request_exception_handler'
