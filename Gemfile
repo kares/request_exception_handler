@@ -12,4 +12,7 @@ end
 
 group :test do
   gem 'nokogiri', :require => nil
+  
+  gem 'test-unit', '~> 2.5', :require => nil # for Rails < 4.0 due "sanity"
+  gem 'minitest', :require => nil # Rails 4.x (quite picky about version)
 end
