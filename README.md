@@ -67,5 +67,5 @@ for Nokogiri the rescue block would look something like :
 
 ## Copyright
 
-Copyright (c) 2009-2012 [Karol Bucek](https://github.com/kares). 
+Copyright (c) 2009-2014 [Karol Bucek](https://github.com/kares). 
 See LICENSE (http://www.apache.org/licenses/LICENSE-2.0) for details.
