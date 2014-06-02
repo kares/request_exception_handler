@@ -16,25 +16,22 @@ version =
 if version
   RAILS_VERSION = version
   gem 'activesupport', "= #{RAILS_VERSION}"
-  #gem 'activerecord', "= #{RAILS_VERSION}"
   gem 'actionpack', "= #{RAILS_VERSION}"
-  #gem 'actionmailer', "= #{RAILS_VERSION}"
   gem 'rails', "= #{RAILS_VERSION}"
 else
   gem 'activesupport'
-  #gem 'activerecord'
   gem 'actionpack'
-  #gem 'actionmailer'
   gem 'rails'
 end
 
+require 'rails/version'
+puts "emulating Rails.version = #{Rails::VERSION::STRING}"
+
 require 'active_support'
+require File.expand_path('../test-unit-rails4', __FILE__) if Rails::VERSION::MAJOR >= 4
 require 'active_support/test_case'
 require 'action_controller'
 require 'action_controller/test_case'
-
-require 'rails/version'
-puts "emulating Rails.version = #{Rails::VERSION::STRING}"
 
 require 'action_controller/integration' if Rails::VERSION::MAJOR < 3
 require 'action_controller/session_management' if Rails::VERSION::MAJOR < 3
@@ -47,16 +44,24 @@ else
   ActiveSupport::Deprecation.debug = true
 end
 
-if Rails::VERSION::MAJOR >= 3
+if Rails::VERSION::MAJOR >= 4
+  require 'rails'
+  class TestApplication < Rails::Application; end
+  Rails.application = TestApplication.new
+  Rails.application.config.eager_load = true
+  # a minimal require 'rails/all' :
+  require 'action_controller/railtie'
+  require 'rails/test_help'
+elsif Rails::VERSION::MAJOR >= 3
   require 'rails'
   # a minimal require 'rails/all' :
-  require "action_controller/railtie"
-  require "rails/test_unit/railtie"
+  require 'action_controller/railtie'
+  require 'rails/test_unit/railtie'
   require 'rails/test_help'
 else
   module Rails
     class << self
-      
+
       def initialized?
         @initialized || false
       end
@@ -100,7 +105,7 @@ else
       def public_path=(path)
         @@public_path = path
       end
-      
+
     end
   end
 end
@@ -130,25 +135,25 @@ if ActionController::Base.respond_to? :session_options # Rails 2.x
   ActionController::Base.session_options[:secret] = 'x' * 30
 
 else # since Rails 3.0.0 :
-  
+
   module RequestExceptionHandlerTest
     class Application < Rails::Application
       config.secret_token = 'x' * 30
     end
   end
-  
+
   # Initialize the rails application
   RequestExceptionHandlerTest::Application.initialize!
 
 end
 
-ActiveSupport::TestCase.class_eval do
+# ActiveSupport::TestCase.class_eval do
 
-  def setup_fixtures
-    return nil # Rails 3 load hooks !
-  end
-  
-end
+#   def setup_fixtures
+#     return nil # Rails 3 load hooks !
+#   end
+
+# end
 
 $LOAD_PATH.unshift File.join(File.dirname(__FILE__), '../lib')
 require 'request_exception_handler'
