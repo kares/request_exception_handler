@@ -9,3 +9,7 @@ unless rails_version.empty?
 else
   gem 'rails'
 end
+
+group :test do
+  gem 'nokogiri', :require => nil
+end
