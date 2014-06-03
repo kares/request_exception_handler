@@ -24,7 +24,7 @@ module RequestExceptionHandler
 
     content_type = if request.respond_to?(:content_mime_type)
       request.content_mime_type
-    elsif request.respond_tp?(:content_type_with_parameters)
+    elsif request.respond_to?(:content_type_with_parameters)
       request.send :content_type_with_parameters # (legacy) ActionController::AbstractRequest
     else
       request.content_type
