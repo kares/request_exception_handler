@@ -58,17 +58,36 @@ module RequestExceptionHandler
     store_request_exception nil
   end
 
-  # Resets the current +request_exception+ (to nil).
-  def self.store_request_exception(exception)
-    Thread.current[THREAD_LOCAL_NAME] = exception
-  end
+  if defined? Thread.current.thread_variables
 
-  # Retrieves and keeps track of the current request exception if any.
-  def request_exception
-    return @_request_exception if defined? @_request_exception
-    @_request_exception = Thread.current[THREAD_LOCAL_NAME]
-    RequestExceptionHandler.reset_request_exception
-    @_request_exception
+    # Resets the current +request_exception+ (to nil).
+    def self.store_request_exception(exception)
+      Thread.current.thread_variable_set THREAD_LOCAL_NAME, exception
+    end
+
+    # Retrieves and keeps track of the current request exception if any.
+    def request_exception
+      return @_request_exception if defined? @_request_exception
+      @_request_exception = Thread.current.thread_variable_get(THREAD_LOCAL_NAME)
+      RequestExceptionHandler.reset_request_exception
+      @_request_exception
+    end
+
+  else
+
+    # Resets the current +request_exception+ (to nil).
+    def self.store_request_exception(exception)
+      Thread.current[THREAD_LOCAL_NAME] = exception
+    end
+
+    # Retrieves and keeps track of the current request exception if any.
+    def request_exception
+      return @_request_exception if defined? @_request_exception
+      @_request_exception = Thread.current[THREAD_LOCAL_NAME]
+      RequestExceptionHandler.reset_request_exception
+      @_request_exception
+    end
+
   end
 
   # Checks and raises a +request_exception+ (gets prepended as a before filter).
