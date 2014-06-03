@@ -5,25 +5,29 @@ module RequestExceptionHandler
   THREAD_LOCAL_NAME = :_request_exception
 
   @@parse_request_parameters_exception_handler = lambda do |request, exception|
-    Thread.current[THREAD_LOCAL_NAME] = exception
+    RequestExceptionHandler.store_request_exception(exception)
     request_body = request.respond_to?(:body) ? request.body : request.raw_post
 
     logger = RequestExceptionHandler.logger
-    if logger.info?
+    if logger.debug?
       content_log = request_body
       if request_body.is_a?(StringIO)
         pos = request_body.pos
         content_log = request_body.read
       end
-      logger.info "#{exception.class.name} occurred while parsing request parameters." +
-                  "\nContents:\n#{content_log}\n"
+      logger.debug "#{exception.class.name} occurred while parsing request parameters." <<
+                   "\nContents:\n#{content_log}\n"
       request_body.pos = pos if pos
+    elsif logger.info?
+      logger.info "#{exception.class.name} occurred while parsing request parameters."
     end
 
-    content_type = if request.respond_to?(:content_type_with_parameters)
-      request.send :content_type_with_parameters # AbstractRequest
-    else # rack request
-      request.respond_to?(:content_mime_type) ? request.content_mime_type : request.content_type
+    content_type = if request.respond_to?(:content_mime_type)
+      request.content_mime_type
+    elsif request.respond_tp?(:content_type_with_parameters)
+      request.send :content_type_with_parameters # (legacy) ActionController::AbstractRequest
+    else
+      request.content_type
     end
     { "body" => request_body, "content_type" => content_type, "content_length" => request.content_length }
   end
@@ -35,26 +39,28 @@ module RequestExceptionHandler
     raise e
   end
 
-  # Resets the current +request_exception+ (to nil).
-  def self.reset_request_exception
-    Thread.current[THREAD_LOCAL_NAME] = nil
-  end
+  @@parse_request_parameters_exception_logger = nil
 
   # Retrieves the Rails logger.
   def self.logger
-    defined?(Rails.logger) ? Rails.logger :
-      defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER :
-        Logger.new($stderr)
+    @@parse_request_parameters_exception_logger ||=
+      defined?(Rails.logger) ? Rails.logger :
+        defined?(RAILS_DEFAULT_LOGGER) ? RAILS_DEFAULT_LOGGER :
+          Logger.new(STDERR)
   end
 
   def self.included(base)
     base.prepend_before_filter :check_request_exception
   end
 
-  # Checks and raises a +request_exception+ (gets prepended as a before filter).
-  def check_request_exception
-    e = request_exception
-    raise e if e && e.is_a?(Exception)
+  # Resets the current +request_exception+ (to nil).
+  def self.reset_request_exception
+    store_request_exception nil
+  end
+
+  # Resets the current +request_exception+ (to nil).
+  def self.store_request_exception(exception)
+    Thread.current[THREAD_LOCAL_NAME] = exception
   end
 
   # Retrieves and keeps track of the current request exception if any.
@@ -63,6 +69,13 @@ module RequestExceptionHandler
     @_request_exception = Thread.current[THREAD_LOCAL_NAME]
     RequestExceptionHandler.reset_request_exception
     @_request_exception
+  end
+
+  # Checks and raises a +request_exception+ (gets prepended as a before filter).
+  def check_request_exception
+    if e = request_exception
+      raise e if e.is_a?(Exception)
+    end
   end
 
 end
