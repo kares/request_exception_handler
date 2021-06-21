@@ -104,7 +104,30 @@ ActionController::Base.send :include, RequestExceptionHandler
 
 # NOTE: Rails "parameters-parser" monkey patching follows :
 
-if defined? ActionDispatch::ParamsParser::ParseError # Rails 4.x
+if defined? ActionDispatch::Http::Parameters # Rails 5.x
+  module ActionDispatch::Http::Parameters
+    alias_method 'parse_formatted_parameters_without_exception_handler', 'parse_formatted_parameters'
+
+    def parse_formatted_parameters_with_exception_handler(env)
+      begin
+        out = parse_formatted_parameters_without_exception_handler(env)
+        RequestExceptionHandler.reset_request_exception # make sure it's nil
+        out
+      rescue ParseError => e
+        e = e.original_exception
+        handler = RequestExceptionHandler.parse_request_parameters_exception_handler
+        handler ? handler.call(ActionDispatch::Request.new(env), e) : raise
+      rescue => e # all Exception-s get wrapped into ParseError ... but just in case
+        handler = RequestExceptionHandler.parse_request_parameters_exception_handler
+        handler ? handler.call(ActionDispatch::Request.new(env), e) : raise
+      end
+    end
+    
+    alias_method 'parse_formatted_parameters', 'parse_formatted_parameters_with_exception_handler'
+
+  end
+
+elsif defined? ActionDispatch::ParamsParser::ParseError # Rails 4.x
 
   class ActionDispatch::ParamsParser
 
